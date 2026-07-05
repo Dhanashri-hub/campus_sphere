@@ -1,0 +1,686 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: CampusSphere AI Campus API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: students
+    description: Campus student characters
+  - name: chat
+    description: AI chat conversations with students
+  - name: memory
+    description: Cognee memory retrieval and knowledge graph
+  - name: admin
+    description: Admin dashboard and stats
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /students:
+    get:
+      operationId: listStudents
+      tags: [students]
+      summary: List all campus student characters
+      responses:
+        "200":
+          description: List of students
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Student"
+    post:
+      operationId: createStudent
+      tags: [students]
+      summary: Create a new student character
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StudentInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Student"
+
+  /students/{id}:
+    get:
+      operationId: getStudent
+      tags: [students]
+      summary: Get a student by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Student
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Student"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    patch:
+      operationId: updateStudent
+      tags: [students]
+      summary: Update a student character
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StudentUpdate"
+      responses:
+        "200":
+          description: Updated student
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Student"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    delete:
+      operationId: deleteStudent
+      tags: [students]
+      summary: Delete a student character
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /chat/conversations:
+    get:
+      operationId: listConversations
+      tags: [chat]
+      summary: List all chat conversations
+      parameters:
+        - name: studentId
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of conversations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Conversation"
+    post:
+      operationId: createConversation
+      tags: [chat]
+      summary: Start a new conversation with a student
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConversationInput"
+      responses:
+        "201":
+          description: Created conversation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Conversation"
+
+  /chat/conversations/{id}:
+    get:
+      operationId: getConversation
+      tags: [chat]
+      summary: Get conversation with all messages
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Conversation with messages
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConversationWithMessages"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    delete:
+      operationId: deleteConversation
+      tags: [chat]
+      summary: Delete a conversation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /chat/conversations/{id}/messages:
+    get:
+      operationId: listMessages
+      tags: [chat]
+      summary: List messages in a conversation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Message"
+    post:
+      operationId: sendMessage
+      tags: [chat]
+      summary: Send a message (SSE stream of AI response)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MessageInput"
+      responses:
+        "200":
+          description: SSE stream
+          content:
+            text/event-stream: {}
+
+  /memory/search:
+    get:
+      operationId: searchMemory
+      tags: [memory]
+      summary: Search Cognee memory
+      parameters:
+        - name: query
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: studentId
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemorySearchResult"
+
+  /memory/entries:
+    get:
+      operationId: listMemoryEntries
+      tags: [memory]
+      summary: List all memory entries
+      responses:
+        "200":
+          description: Memory entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MemoryEntry"
+    post:
+      operationId: addMemoryEntry
+      tags: [memory]
+      summary: Add a memory/document to Cognee
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MemoryEntryInput"
+      responses:
+        "201":
+          description: Added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemoryEntry"
+
+  /memory/graph:
+    get:
+      operationId: getKnowledgeGraph
+      tags: [memory]
+      summary: Get knowledge graph data from Cognee
+      responses:
+        "200":
+          description: Graph nodes and edges
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KnowledgeGraph"
+
+  /memory/timeline:
+    get:
+      operationId: getMemoryTimeline
+      tags: [memory]
+      summary: Get chronological memory timeline
+      parameters:
+        - name: studentId
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Timeline events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TimelineEvent"
+
+  /admin/stats:
+    get:
+      operationId: getAdminStats
+      tags: [admin]
+      summary: Get admin dashboard statistics
+      responses:
+        "200":
+          description: Dashboard stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminStats"
+
+  /admin/activity:
+    get:
+      operationId: getRecentActivity
+      tags: [admin]
+      summary: Get recent campus activity
+      responses:
+        "200":
+          description: Recent activity
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActivityEvent"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+
+    ApiError:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+
+    Student:
+      type: object
+      required: [id, name, role, specialty, avatarColor, avatarEmoji, positionX, positionY, personality, isOnline, createdAt]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        role:
+          type: string
+        specialty:
+          type: string
+        avatarColor:
+          type: string
+        avatarEmoji:
+          type: string
+        positionX:
+          type: number
+        positionY:
+          type: number
+        personality:
+          type: string
+        isOnline:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    StudentInput:
+      type: object
+      required: [name, role, specialty, avatarColor, avatarEmoji, positionX, positionY, personality]
+      properties:
+        name:
+          type: string
+        role:
+          type: string
+        specialty:
+          type: string
+        avatarColor:
+          type: string
+        avatarEmoji:
+          type: string
+        positionX:
+          type: number
+        positionY:
+          type: number
+        personality:
+          type: string
+        isOnline:
+          type: boolean
+
+    StudentUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        role:
+          type: string
+        specialty:
+          type: string
+        avatarColor:
+          type: string
+        avatarEmoji:
+          type: string
+        positionX:
+          type: number
+        positionY:
+          type: number
+        personality:
+          type: string
+        isOnline:
+          type: boolean
+
+    Conversation:
+      type: object
+      required: [id, studentId, title, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+        studentId:
+          type: integer
+        title:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ConversationInput:
+      type: object
+      required: [studentId]
+      properties:
+        studentId:
+          type: integer
+        title:
+          type: string
+
+    ConversationWithMessages:
+      type: object
+      required: [id, studentId, title, createdAt, updatedAt, messages]
+      properties:
+        id:
+          type: integer
+        studentId:
+          type: integer
+        title:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/Message"
+
+    Message:
+      type: object
+      required: [id, conversationId, role, content, createdAt]
+      properties:
+        id:
+          type: integer
+        conversationId:
+          type: integer
+        role:
+          type: string
+        content:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    MessageInput:
+      type: object
+      required: [content]
+      properties:
+        content:
+          type: string
+
+    MemoryEntry:
+      type: object
+      required: [id, content, tags, studentId, createdAt]
+      properties:
+        id:
+          type: integer
+        content:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        studentId:
+          type: ["integer", "null"]
+        createdAt:
+          type: string
+          format: date-time
+
+    MemoryEntryInput:
+      type: object
+      required: [content]
+      properties:
+        content:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        studentId:
+          type: ["integer", "null"]
+
+    MemorySearchResult:
+      type: object
+      required: [query, results]
+      properties:
+        query:
+          type: string
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/MemorySearchItem"
+
+    MemorySearchItem:
+      type: object
+      required: [id, content, score, tags]
+      properties:
+        id:
+          type: string
+        content:
+          type: string
+        score:
+          type: number
+        tags:
+          type: array
+          items:
+            type: string
+        metadata:
+          type: object
+
+    KnowledgeGraph:
+      type: object
+      required: [nodes, edges]
+      properties:
+        nodes:
+          type: array
+          items:
+            $ref: "#/components/schemas/GraphNode"
+        edges:
+          type: array
+          items:
+            $ref: "#/components/schemas/GraphEdge"
+
+    GraphNode:
+      type: object
+      required: [id, label, type]
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        type:
+          type: string
+        metadata:
+          type: object
+
+    GraphEdge:
+      type: object
+      required: [id, source, target, label]
+      properties:
+        id:
+          type: string
+        source:
+          type: string
+        target:
+          type: string
+        label:
+          type: string
+
+    TimelineEvent:
+      type: object
+      required: [id, type, title, description, timestamp]
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        studentId:
+          type: ["integer", "null"]
+        studentName:
+          type: ["string", "null"]
+
+    AdminStats:
+      type: object
+      required: [totalStudents, totalConversations, totalMessages, totalMemoryEntries, onlineStudents, activeToday]
+      properties:
+        totalStudents:
+          type: integer
+        totalConversations:
+          type: integer
+        totalMessages:
+          type: integer
+        totalMemoryEntries:
+          type: integer
+        onlineStudents:
+          type: integer
+        activeToday:
+          type: integer
+
+    ActivityEvent:
+      type: object
+      required: [id, type, description, timestamp]
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+        description:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        studentId:
+          type: ["integer", "null"]
+        studentName:
+          type: ["string", "null"]

@@ -1,0 +1,1 @@
+- [CampusSphere architecture](campus-sphere-arch.md) — full-stack virtual AI campus; React+Vite frontend, Express API, Drizzle+Postgres, Gemini SSE chat, Cognee memory.
